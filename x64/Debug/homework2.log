@@ -1,0 +1,20 @@
+﻿  main.cpp
+D:\a大学学习\大三下\计算机图形学\项目\homework2\homework2\main.cpp(322,20): warning C4244: “=”: 从“double”转换到“T”，可能丢失数据
+          with
+          [
+              T=float
+          ]
+D:\a大学学习\大三下\计算机图形学\项目\homework2\homework2\main.cpp(323,20): warning C4244: “=”: 从“double”转换到“T”，可能丢失数据
+          with
+          [
+              T=float
+          ]
+D:\a大学学习\大三下\计算机图形学\项目\homework2\homework2\main.cpp(324,20): warning C4244: “=”: 从“double”转换到“T”，可能丢失数据
+          with
+          [
+              T=float
+          ]
+D:\a大学学习\大三下\计算机图形学\项目\homework2\homework2\main.cpp(368,74): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
+D:\a大学学习\大三下\计算机图形学\项目\homework2\homework2\main.cpp(383,76): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
+D:\a大学学习\大三下\计算机图形学\项目\homework2\homework2\main.cpp(546,22): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+  homework2.vcxproj -> D:\a大学学习\大三下\计算机图形学\项目\homework2\x64\Debug\homework2.exe
