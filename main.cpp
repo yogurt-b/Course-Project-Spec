@@ -22,8 +22,8 @@ Student Name:周灵萱
 const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
 // 摄像机定义
-glm::vec3 cameraPos = glm::vec3(8.0f, 0.0f, 8.0f);
-glm::vec3 cameraFront = glm::vec3(-8.0f, 0.0f, -8.0f);
+glm::vec3 cameraPos = glm::vec3(8.2f, 1.0f, 8.2f);
+glm::vec3 cameraFront = glm::vec3(-8.2f, -3.0f, -8.2f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 // timing
 float deltaTime = 0.0f;	// 当前帧与上一帧的时间差
@@ -39,9 +39,9 @@ float pitch = 0.0f;
 float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 //移动变量
-float angle = 0.0f;
+float angle = 225.0f;
 glm::vec3 dir = glm::vec3(0.0f, 0.0f, 1.0f);
-glm::vec3 penfront = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 spacefront = glm::vec3(0.0f, 0.0f, 0.0f);
 //改变光照强度
 glm::vec3 lightambient(0.2f);
 
@@ -327,7 +327,7 @@ void paintGL(void)  //always run
 	glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // 很低的影响
 
 	myshader.setVec3("spotLight.position", spotPos);
-	myshader.setVec3("spotLight.direction", penfront-spotPos);
+	myshader.setVec3("spotLight.direction", spacefront -spotPos);
 	myshader.setVec3("spotLight.ambient", ambientColor);
 	myshader.setVec3("spotLight.diffuse", diffuseColor);
 	myshader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -354,7 +354,7 @@ void paintGL(void)  //always run
 	//将矩阵传入着色器
 	//行星
 	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
-	model = glm::translate(model, glm::vec3(-3.0f, 0.0f, -3.0f));
+	model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//放在原点
 	myshader.setMat4("model", model);
 	myshader.setMat4("view", view);
 	myshader.setMat4("projection", projection);
@@ -369,10 +369,11 @@ void paintGL(void)  //always run
 
 	//驾驶飞船
 	model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(penfront));
+	model = glm::translate(model, glm::vec3(spacefront));
+	model = glm::translate(model, glm::vec3(7.0f, 0.0f, 7.0f));
+	model = glm::scale(model, glm::vec3(0.001f, 0.001f, 0.001f));
 	model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
-	//model = glm::translate(model, glm::vec3(3.0f, 0.0f, 3.0f));
+	
 	myshader.setMat4("model", model);
 	glBindVertexArray(VAO2);
 	if (texcg2 == 0)
@@ -402,11 +403,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	}
 }
 //单击后光标移动改变视角
-void cursor_position_callback(GLFWwindow* window, double x, double y)
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	// Sets the cursor position callback for the current window
-	float xpos = static_cast<float>(x);
-	float ypos = static_cast<float>(y);
 
 	if (openmove&&firstMouse)
 	{
@@ -484,9 +482,9 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-		penfront += cameraSpeed * dir;
+		spacefront += cameraSpeed * dir;
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-		penfront -= cameraSpeed * dir;
+		spacefront -= cameraSpeed * dir;
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
 		angle += cameraSpeed * 10.0f;
