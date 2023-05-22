@@ -21,6 +21,16 @@ Student Name:周灵萱
 // screen setting
 const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
+//Sc and camera
+glm::vec3 SC_local_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 camera_local_pos = glm::vec3(0.0f, 1.0f, 1.2f);
+glm::vec3 SC_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 camera_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+
+glm::vec3 SC_local_front = glm::vec3(0.0f, 0.0f, 1.0f);
+glm::vec3 SC_local_right = glm::vec3(-1.0f, 0.0f, 0.0f);
+glm::vec3 SC_world_Front_Dir = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 SC_world_Right_Dir = glm::vec3(0.0f, 0.0f, 0.0f);
 // 摄像机定义
 glm::vec3 cameraPos = glm::vec3(8.2f, 1.0f, 8.2f);
 glm::vec3 cameraFront = glm::vec3(-8.2f, -3.0f, -8.2f);
@@ -40,7 +50,7 @@ float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 //移动变量
 float angle = 225.0f;
-glm::vec3 dir = glm::vec3(0.0f, 0.0f, 1.0f);
+
 glm::vec3 spacefront = glm::vec3(0.0f, 0.0f, 0.0f);
 //改变光照强度
 glm::vec3 lightambient(0.2f);
@@ -369,11 +379,16 @@ void paintGL(void)  //always run
 
 	//驾驶飞船
 	model = glm::mat4(1.0f);
-	model = glm::translate(model, glm::vec3(spacefront));
-	model = glm::translate(model, glm::vec3(7.0f, 0.0f, 7.0f));
-	model = glm::scale(model, glm::vec3(0.001f, 0.001f, 0.001f));
-	model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-	
+	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(7.0f, 0.0f, 7.0f) + spacefront));
+	glm::mat4 SC_scale = glm::scale(model, glm::vec3(0.0005f, 0.0005f, 0.0005f));
+	glm::mat4 SC_Rot = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+	model = SC_trans* SC_Rot* SC_scale;
+	SC_world_pos = model * glm::vec4(SC_local_pos, 0.0f);
+	SC_world_Front_Dir = model * glm::vec4(SC_local_front, 0.0f);//应该第四位是0
+	SC_world_Right_Dir = model * glm::vec4(SC_local_right, 0.0f);
+	SC_world_Front_Dir = glm::normalize(SC_world_Front_Dir);
+	SC_world_Right_Dir = glm::normalize(SC_world_Right_Dir);
+
 	myshader.setMat4("model", model);
 	glBindVertexArray(VAO2);
 	if (texcg2 == 0)
@@ -391,54 +406,41 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 //鼠标单击
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	// Sets the mouse-button callback for the current window.
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		//printf("%d %d\n", x, y);
-		openmove = 1-openmove;
-		if(openmove)
-			//隐藏光标，并捕捉(Capture)它
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		if(!openmove)
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	}
+
 }
 //单击后光标移动改变视角
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
 
-	if (openmove&&firstMouse)
+	if (firstMouse)
 	{
 		lastX = xpos;
 		lastY = ypos;
 		firstMouse = false;
 	}
 
-	if(openmove)
-	{ 
-		float xoffset = xpos - lastX;
-		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-		lastX = xpos;
-		lastY = ypos;
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
 
-		float sensitivity = 0.1f; // change this value to your liking
-		xoffset *= sensitivity;
-		yoffset *= sensitivity;
+	float sensitivity = 0.05;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
 
-		yaw += xoffset;
-		pitch += yoffset;
+	yaw += xoffset;
+	pitch += yoffset;
 
-		// make sure that when pitch is out of bounds, screen doesn't get flipped
-		if (pitch > 89.0f)
-			pitch = 89.0f;
-		if (pitch < -89.0f)
-			pitch = -89.0f;
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
 
-		glm::vec3 front;
-		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-		front.y = sin(glm::radians(pitch));
-		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-		cameraFront = glm::normalize(front);
-	}
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(front);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -482,22 +484,25 @@ void processInput(GLFWwindow* window)
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-		spacefront += cameraSpeed * dir;
+	{
+		spacefront[0] += cameraSpeed * SC_world_Front_Dir[0];
+		spacefront[2] += cameraSpeed * SC_world_Front_Dir[2];
+	}
+
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-		spacefront -= cameraSpeed * dir;
+	{
+		spacefront[0] -= cameraSpeed * SC_world_Front_Dir[0];
+		spacefront[2] -= cameraSpeed * SC_world_Front_Dir[2];
+	}
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 	{
-		angle += cameraSpeed * 10.0f;
-		dir.x = sin(glm::radians(angle));
-		dir.z = cos(glm::radians(angle));
-		dir = glm::normalize(dir);
+		spacefront[0] -= cameraSpeed * SC_world_Right_Dir[0];
+		spacefront[2] -= cameraSpeed * SC_world_Right_Dir[2];
 	}
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 	{
-		angle -= cameraSpeed * 10.0f;
-		dir.x = sin(glm::radians(angle));
-		dir.z = cos(glm::radians(angle));
-		dir = glm::normalize(dir);
+		spacefront[0] += cameraSpeed * SC_world_Right_Dir[0];
+		spacefront[2] += cameraSpeed * SC_world_Right_Dir[2];
 	}
 }
 
@@ -536,6 +541,7 @@ int main(int argc, char* argv[])
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	initializedGL();
 
