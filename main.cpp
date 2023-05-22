@@ -18,14 +18,16 @@ Student Name:周灵萱
 #include <vector>
 #include <map>
 
+
 // screen setting
 const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
 //Sc and camera
 glm::vec3 SC_local_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 camera_local_pos = glm::vec3(0.0f, 1.0f, 1.2f);
 glm::vec3 SC_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+
 glm::vec3 camera_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 camera_world_view = glm::vec3(0.0f, 0.0f, 0.0f);
 
 glm::vec3 SC_local_front = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 SC_local_right = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -33,7 +35,7 @@ glm::vec3 SC_world_Front_Dir = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 SC_world_Right_Dir = glm::vec3(0.0f, 0.0f, 0.0f);
 // 摄像机定义
 glm::vec3 cameraPos = glm::vec3(8.2f, 1.0f, 8.2f);
-glm::vec3 cameraFront = glm::vec3(-8.2f, -3.0f, -8.2f);
+//glm::vec3 cameraFront = glm::vec3(-8.2f, -3.0f, -8.2f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 // timing
 float deltaTime = 0.0f;	// 当前帧与上一帧的时间差
@@ -67,6 +69,36 @@ struct Model {
 	std::vector<Vertex> vertices;
 	std::vector<unsigned int> indices;
 };
+
+unsigned int loadCubemap(vector<std::string> faces)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
 
 Model loadOBJ(const char* objPath)
 {
@@ -188,8 +220,9 @@ void get_OpenGL_info()
 	std::cout << "OpenGL company: " << name << std::endl;
 	std::cout << "Renderer name: " << renderer << std::endl;
 	std::cout << "OpenGL version: " << glversion << std::endl;
-}
-
+}	
+unsigned int skyboxVAO, skyboxVBO;
+unsigned int cubemapTexture;
 
 GLuint VAO1, VBO1, EBO1;
 Model objearth;
@@ -204,8 +237,74 @@ Texture Texture4;
 void sendDataToOpenGL()
 {
 	//TODO
+	//天空盒
+	float skyboxVertices[] = {
+		// positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+	// skybox VAO
+
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	//Load objects and bind to VAO and VBO
 	//Load textures
+	//skybox
+	vector<std::string> faces
+	{
+		"resources/skybox/right.bmp",
+		"resources/skybox/left.bmp",
+		"resources/skybox/top.bmp",
+		"resources/skybox/bottom.bmp",
+		"resources/skybox/front.bmp",
+		"resources/skybox/back.bmp"
+	};
+	cubemapTexture = loadCubemap(faces);
+
 	//行星
 	objearth = loadOBJ("resources/object/planet.obj");
 	glGenVertexArrays(1, &VAO1);
@@ -293,6 +392,7 @@ void sendDataToOpenGL()
 }
 
 Shader myshader;
+Shader skyboxshader;
 void initializedGL(void) //run only once
 {
 	if (glewInit() != GLEW_OK) {
@@ -305,6 +405,7 @@ void initializedGL(void) //run only once
 	//TODO: set up the camera parameters	
 	//TODO: set up the vertex shader and fragment shader
 	myshader.setupShader("VertexShaderCode.glsl","FragmentShaderCode.glsl");
+	skyboxshader.setupShader("skyVShaderCode.glsl", "skyFShaderCode.glsl");
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -321,7 +422,7 @@ void paintGL(void)  //always run
 	unsigned int slot = 0;
 	glActiveTexture(GL_TEXTURE0 + slot);
 	myshader.setInt("material.diffuse", 0);
-	myshader.setVec3("viewPos", cameraPos);
+	myshader.setVec3("viewPos", camera_world_pos);
 	// directional light
 	myshader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
 	myshader.setVec3("dirLight.ambient", lightambient);
@@ -355,19 +456,52 @@ void paintGL(void)  //always run
 	//model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 	// 观察矩阵
 	glm::mat4 view = glm::mat4(1.0f);
-	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 	//view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 	// 投影矩阵
 	glm::mat4 projection = glm::mat4(1.0f);
 	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
 
+	//驾驶飞船
+	model = glm::mat4(1.0f);
+	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(7.0f, 0.0f, 7.0f) + spacefront));
+	glm::mat4 SC_scale = glm::scale(model, glm::vec3(0.0005f, 0.0005f, 0.0005f));
+	glm::mat4 SC_Rot = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
+	model = SC_trans* SC_Rot* SC_scale;
+	SC_world_pos = glm::vec3(7.0f, 0.0f, 7.0f) + spacefront;
+	SC_world_Front_Dir = model * glm::vec4(SC_local_front, 0.0f);//应该第四位是0?
+	SC_world_Right_Dir = model * glm::vec4(SC_local_right, 0.0f);
+	SC_world_Front_Dir = glm::normalize(SC_world_Front_Dir);
+	SC_world_Right_Dir = glm::normalize(SC_world_Right_Dir);
+
+	//虚拟相机相对静止位置
+	camera_world_pos[0] = SC_world_pos[0] - SC_world_Front_Dir[0] ;
+	camera_world_pos[1] = 1.0f;
+	camera_world_pos[2] = SC_world_pos[0] - SC_world_Front_Dir[2] ;
+	camera_world_view[0] = SC_world_pos[0] + SC_world_Front_Dir[0] * 2;
+	camera_world_view[1] = 0.0f;
+	camera_world_view[2] = SC_world_pos[0] + SC_world_Front_Dir[2] * 2;
+	//SC_world_pos = model * glm::vec4(0.0f, 0.0f, 10.0f, 1.0f);
+	//camera_world_pos = model * glm::vec4(0.0f, 10.0f, -10.0f, 1.0f);
+	//camera_world_view = SC_world_pos;
+	view = glm::lookAt(camera_world_pos, camera_world_view, cameraUp);
+	myshader.setMat4("view", view);
+	myshader.setMat4("projection", projection);
+	myshader.setMat4("model", model);
+	glBindVertexArray(VAO2);
+	if (texcg2 == 0)
+		Texture3.bind(0);
+	if (texcg2 == 1)
+		Texture4.bind(0);
+
+	glDrawElements(GL_TRIANGLES, objmycraft.indices.size(), GL_UNSIGNED_INT, 0);
+
 	//将矩阵传入着色器
 	//行星
+	model = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
 	model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//放在原点
 	myshader.setMat4("model", model);
-	myshader.setMat4("view", view);
-	myshader.setMat4("projection", projection);
+
 	//Bind different textures
 	glBindVertexArray(VAO1);
 	if (texcg1 == 0)
@@ -377,26 +511,25 @@ void paintGL(void)  //always run
 
 	glDrawElements(GL_TRIANGLES, objearth.indices.size(), GL_UNSIGNED_INT, 0);
 
-	//驾驶飞船
+	//天空盒
 	model = glm::mat4(1.0f);
-	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(7.0f, 0.0f, 7.0f) + spacefront));
-	glm::mat4 SC_scale = glm::scale(model, glm::vec3(0.0005f, 0.0005f, 0.0005f));
-	glm::mat4 SC_Rot = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = SC_trans* SC_Rot* SC_scale;
-	SC_world_pos = model * glm::vec4(SC_local_pos, 0.0f);
-	SC_world_Front_Dir = model * glm::vec4(SC_local_front, 0.0f);//应该第四位是0
-	SC_world_Right_Dir = model * glm::vec4(SC_local_right, 0.0f);
-	SC_world_Front_Dir = glm::normalize(SC_world_Front_Dir);
-	SC_world_Right_Dir = glm::normalize(SC_world_Right_Dir);
+	model = glm::scale(model, glm::vec3(100.0f, 100.0f, 100.0f));
+	skyboxshader.use();
+	skyboxshader.setInt("skybox", 0);
+	// draw skybox as last
+	glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+	skyboxshader.use();
+	skyboxshader.setMat4("model", model);
+	skyboxshader.setMat4("view", view);
+	skyboxshader.setMat4("projection", projection);
+	// skybox cube
+	glBindVertexArray(skyboxVAO);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+	glDepthFunc(GL_LESS); // set depth function back to default
 
-	myshader.setMat4("model", model);
-	glBindVertexArray(VAO2);
-	if (texcg2 == 0)
-		Texture3.bind(0);
-	if (texcg2 == 1)
-		Texture4.bind(0);
-
-	glDrawElements(GL_TRIANGLES, objmycraft.indices.size(), GL_UNSIGNED_INT, 0);
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -457,14 +590,6 @@ void processInput(GLFWwindow* window)
 		glfwSetWindowShouldClose(window, true);
 
 	float cameraSpeed = static_cast<float>(2.5 * deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraUp;
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraUp;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
 		spacefront[0] += cameraSpeed * SC_world_Front_Dir[0];
@@ -523,7 +648,7 @@ int main(int argc, char* argv[])
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
 	initializedGL();
 

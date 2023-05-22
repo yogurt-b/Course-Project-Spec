@@ -43,5 +43,11 @@
     <None Include="VertexShaderCode.glsl">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="skyVShaderCode.glsl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="skyFShaderCode.glsl">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
