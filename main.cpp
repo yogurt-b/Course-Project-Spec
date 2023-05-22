@@ -411,36 +411,18 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 //单击后光标移动改变视角
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-
+	float cameraSpeed = static_cast<float>(2.5 * deltaTime);
 	if (firstMouse)
 	{
 		lastX = xpos;
 		lastY = ypos;
 		firstMouse = false;
 	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos;
+	if (xpos < lastX)
+		angle += 0.5f;
+	if (xpos > lastX)
+		angle -= 0.5f;
 	lastX = xpos;
-	lastY = ypos;
-
-	float sensitivity = 0.05;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	front.y = sin(glm::radians(pitch));
-	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(front);
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
