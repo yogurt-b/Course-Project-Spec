@@ -33,9 +33,7 @@ glm::vec3 SC_local_front = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 SC_local_right = glm::vec3(-1.0f, 0.0f, 0.0f);
 glm::vec3 SC_world_Front_Dir = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 SC_world_Right_Dir = glm::vec3(0.0f, 0.0f, 0.0f);
-// 摄像机定义
-glm::vec3 cameraPos = glm::vec3(8.2f, 1.0f, 8.2f);
-//glm::vec3 cameraFront = glm::vec3(-8.2f, -3.0f, -8.2f);
+
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 // timing
 float deltaTime = 0.0f;	// 当前帧与上一帧的时间差
@@ -51,7 +49,7 @@ float pitch = 0.0f;
 float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 //移动变量
-float angle = 225.0f;
+float angle = 180.0f;
 
 glm::vec3 spacefront = glm::vec3(0.0f, 0.0f, 0.0f);
 //改变光照强度
@@ -461,29 +459,23 @@ void paintGL(void)  //always run
 	glm::mat4 projection = glm::mat4(1.0f);
 	projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 20.0f);
 
-	//驾驶飞船
+	//驾驶飞船 z轴
 	model = glm::mat4(1.0f);
-	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(7.0f, 0.0f, 7.0f) + spacefront));
+	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(0.0f, 0.3f, 10.0f) + spacefront));
+	glm::mat4 SC_rot = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 SC_scale = glm::scale(model, glm::vec3(0.0005f, 0.0005f, 0.0005f));
-	glm::mat4 SC_Rot = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = SC_trans* SC_Rot* SC_scale;
-	SC_world_pos = glm::vec3(7.0f, 0.0f, 7.0f) + spacefront;
+	glm::mat4 scmodel = SC_trans * SC_rot;
+	camera_world_pos = scmodel * glm::vec4(0.0f, 0.6f, -1.0f, 1.0f);
+	SC_world_pos = scmodel * glm::vec4(0.0f, 0.0f, 1.5f, 1.0f);
+	view = glm::lookAt(camera_world_pos, SC_world_pos, cameraUp);//不乘缩放，不然移动尺度很小
+	
+	model = SC_trans* SC_rot* SC_scale;
+
 	SC_world_Front_Dir = model * glm::vec4(SC_local_front, 0.0f);//应该第四位是0?
 	SC_world_Right_Dir = model * glm::vec4(SC_local_right, 0.0f);
 	SC_world_Front_Dir = glm::normalize(SC_world_Front_Dir);
 	SC_world_Right_Dir = glm::normalize(SC_world_Right_Dir);
-
-	//虚拟相机相对静止位置
-	camera_world_pos[0] = SC_world_pos[0] - SC_world_Front_Dir[0] ;
-	camera_world_pos[1] = 1.0f;
-	camera_world_pos[2] = SC_world_pos[0] - SC_world_Front_Dir[2] ;
-	camera_world_view[0] = SC_world_pos[0] + SC_world_Front_Dir[0] * 2;
-	camera_world_view[1] = 0.0f;
-	camera_world_view[2] = SC_world_pos[0] + SC_world_Front_Dir[2] * 2;
-	//SC_world_pos = model * glm::vec4(0.0f, 0.0f, 10.0f, 1.0f);
-	//camera_world_pos = model * glm::vec4(0.0f, 10.0f, -10.0f, 1.0f);
-	//camera_world_view = SC_world_pos;
-	view = glm::lookAt(camera_world_pos, camera_world_view, cameraUp);
+	
 	myshader.setMat4("view", view);
 	myshader.setMat4("projection", projection);
 	myshader.setMat4("model", model);
@@ -496,10 +488,10 @@ void paintGL(void)  //always run
 	glDrawElements(GL_TRIANGLES, objmycraft.indices.size(), GL_UNSIGNED_INT, 0);
 
 	//将矩阵传入着色器
-	//行星
+	//行星 原点
 	model = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
-	model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//放在原点
+//	model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//放在原点
 	myshader.setMat4("model", model);
 
 	//Bind different textures
