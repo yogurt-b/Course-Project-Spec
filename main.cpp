@@ -23,11 +23,8 @@ Student Name:周灵萱
 const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
 //Sc and camera
-glm::vec3 SC_local_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 SC_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-
 glm::vec3 camera_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 camera_world_view = glm::vec3(0.0f, 0.0f, 0.0f);
 
 glm::vec3 SC_local_front = glm::vec3(0.0f, 0.0f, 1.0f);
 glm::vec3 SC_local_right = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -39,7 +36,6 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float deltaTime = 0.0f;	// 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
 //改变纹理
-bool texcg1 = 0;
 bool texcg2 = 0;
 //单击开启视角移动
 bool openmove = 0;
@@ -53,9 +49,10 @@ float angle = 180.0f;
 
 glm::vec3 spacefront = glm::vec3(0.0f, 0.0f, 0.0f);
 //改变光照强度
-glm::vec3 lightambient(0.2f);
+glm::vec3 lightambient(0.6f);
 
 glm::vec3 spotPos = glm::vec3(0.0f, 4.0f, 0.0f);
+
 // struct for storing the obj file
 struct Vertex {
 	glm::vec3 position;
@@ -68,6 +65,38 @@ struct Model {
 	std::vector<unsigned int> indices;
 };
 
+const float PI = 3.14;
+const int NUM_POINTS = 200;
+glm::vec3 rockPositions[200];//位置
+glm::vec3 rocksizes[200];//大小
+glm::vec3 rotaxis[200];//旋转轴
+float rotangle[200];//旋转角
+//随机生成岩石位置、角度、大小
+void GenerateRock(glm::vec3 rockPositions[])
+{
+	srand(time(NULL)); // 设置随机数种子  
+	float radius = 2.0; // 圆环半径  
+	for (unsigned int i = 0; i < 200; i++)
+	{
+		float xzrange = 0.3f * (rand() % 11 / 10.0f); //半径水平随机偏移量
+		float angle = (float)i / (float)(NUM_POINTS - 1) * 2 * PI; // 计算极角  
+		float x = (radius + xzrange) * sin(angle); // X坐标  
+		float z = (radius + xzrange) * cos(angle); // Z坐标  
+		float y = 0.2f * ((rand() % 11) / 10.0f); //竖直随机偏移量
+		rockPositions[i] = glm::vec3(x, y, z);
+		float size = 0.01f + 0.02f * (rand() % 11 / 10.0f);
+		rocksizes[i] = glm::vec3(size, size, size);
+		rotangle[i] = rand() % 180;
+		float axis_x = 0.1f * ((rand() % 11) / 10.0f); // X 
+		float axis_y = 0.1f * ((rand() % 11) / 10.0f); // Y 
+		float axis_z = 0.1f * ((rand() % 11) / 10.0f); // Z
+		rotaxis[i] = glm::vec3(axis_x, axis_y, axis_z);
+	}
+	
+}
+
+
+//加载立方体纹理贴图
 unsigned int loadCubemap(vector<std::string> faces)
 {
 	unsigned int textureID;
@@ -219,18 +248,24 @@ void get_OpenGL_info()
 	std::cout << "Renderer name: " << renderer << std::endl;
 	std::cout << "OpenGL version: " << glversion << std::endl;
 }	
+
 unsigned int skyboxVAO, skyboxVBO;
 unsigned int cubemapTexture;
 
 GLuint VAO1, VBO1, EBO1;
 Model objearth;
-Texture Texture1;
 Texture Texture2;
 
 GLuint VAO2, VBO2, EBO2;
 Model objmycraft;
 Texture Texture3;
 Texture Texture4;
+
+GLuint VAO3, VBO3, EBO3;
+Model objrock;
+Texture Texture1;
+//Texture Texture4;
+
 
 void sendDataToOpenGL()
 {
@@ -334,7 +369,6 @@ void sendDataToOpenGL()
 		sizeof(Vertex), // stride
 		(void*)offsetof(Vertex, uv) // array buffer offset
 	);
-	Texture1.setupTexture("resources/texture/earthNormal.bmp");
 	Texture2.setupTexture("resources/texture/earthTexture.bmp");
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(
@@ -376,8 +410,56 @@ void sendDataToOpenGL()
 		sizeof(Vertex), // stride
 		(void*)offsetof(Vertex, uv) // array buffer offset
 	);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);//gold图片无法正确显示
+	/*glPixelStorei(GL_UNPACK_ALIGNMENT,1)控制的是所读取数据的对齐方式，
+	默认4字节对齐，即一行的图像数据字节数必须是4的整数倍
+	，即读取数据时，读取4个字节用来渲染一行，之后读取4字节数据用来渲染第二行。
+	对RGB 3字节像素而言，若一行10个像素，即30个字节，在4字节对齐模式下，
+	OpenGL会读取32个字节的数据，若不加注意，会导致glTextImage中致函数的读取越界，从而全面崩溃。*/
 	Texture3.setupTexture("resources/texture/spacecraftTexture.bmp");
 	Texture4.setupTexture("resources/texture/gold.bmp");
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		sizeof(Vertex), // stride
+		(void*)offsetof(Vertex, normal) // array buffer offset
+	);
+	//岩石
+	objrock = loadOBJ("resources/object/rock.obj");
+	glGenVertexArrays(1, &VAO3);
+	glBindVertexArray(VAO3);
+	//Create Vertex Buffer Objects
+	glGenBuffers(1, &VBO3);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO3);
+	glBufferData(GL_ARRAY_BUFFER, objrock.vertices.size() * sizeof(Vertex), &objrock.vertices[0], GL_STATIC_DRAW);
+	//Create Element array Buffer Objects
+	glGenBuffers(1, &EBO3);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO3);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, objrock.indices.size() * sizeof(unsigned int), &objrock.indices[0], GL_STATIC_DRAW);
+	// 1st attribute buffer : position
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		sizeof(Vertex), // stride
+		(void*)offsetof(Vertex, position) // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		sizeof(Vertex), // stride
+		(void*)offsetof(Vertex, uv) // array buffer offset
+	);
+	Texture1.setupTexture("resources/texture/rockTexture.bmp");
+	//Texture4.setupTexture("resources/texture/gold.bmp");
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(
 		2, // attribute
@@ -461,7 +543,7 @@ void paintGL(void)  //always run
 
 	//驾驶飞船 z轴
 	model = glm::mat4(1.0f);
-	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(0.0f, 0.3f, 10.0f) + spacefront));
+	glm::mat4 SC_trans = glm::translate(model, (glm::vec3(0.0f, 0.0f, 10.0f) + spacefront));
 	glm::mat4 SC_rot = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 SC_scale = glm::scale(model, glm::vec3(0.0005f, 0.0005f, 0.0005f));
 	glm::mat4 scmodel = SC_trans * SC_rot;
@@ -491,19 +573,42 @@ void paintGL(void)  //always run
 	//行星 原点
 	model = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
-//	model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));//放在原点
+	model = glm::rotate(model, (float)glfwGetTime() * glm::radians(20.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));//放在原点
 	myshader.setMat4("model", model);
 
 	//Bind different textures
 	glBindVertexArray(VAO1);
-	if (texcg1 == 0)
-		Texture1.bind(0);
-	if (texcg1 == 1)
-		Texture2.bind(0);
+	Texture2.bind(0);
 
 	glDrawElements(GL_TRIANGLES, objearth.indices.size(), GL_UNSIGNED_INT, 0);
 
-	//天空盒
+	//岩石 随机生成环绕行星
+	glBindVertexArray(VAO3);
+	Texture1.bind(0);
+	//200不同位置
+	
+	for (unsigned int i = 0; i < 200; i++)
+	{
+		model = glm::mat4(1.0f);
+		float zizhuanangle = glfwGetTime() * 25.0f;//岩石自转
+		float gongzhuanangle = glfwGetTime() * 3.0f;//岩石公转
+		model = glm::rotate(model, glm::radians(gongzhuanangle), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::translate(model, rockPositions[i]);
+		//不同角度
+		model = glm::rotate(model, glm::radians(rotangle[i]), rotaxis[i]);
+		//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+
+		//不同大小
+		model = glm::scale(model, glm::vec3(rocksizes[i]));
+		
+		myshader.setMat4("model", model);
+
+		glDrawElements(GL_TRIANGLES, objrock.indices.size(), GL_UNSIGNED_INT, 0);
+	}
+	
+
+	//天空盒 
 	model = glm::mat4(1.0f);
 	model = glm::scale(model, glm::vec3(100.0f, 100.0f, 100.0f));
 	skyboxshader.use();
@@ -512,6 +617,7 @@ void paintGL(void)  //always run
 	glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 	skyboxshader.use();
 	skyboxshader.setMat4("model", model);
+	view = glm::mat4(glm::mat3(view)); // 移除观察矩阵中的位移部分，让移动不会影响天空盒的位置向量。
 	skyboxshader.setMat4("view", view);
 	skyboxshader.setMat4("projection", projection);
 	// skybox cube
@@ -533,7 +639,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 
 }
-//单击后光标移动改变视角
+//光标移动改变视角
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	float cameraSpeed = static_cast<float>(2.5 * deltaTime);
@@ -554,19 +660,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	// Sets the scoll callback for the current window.
 }
-//按键改变纹理
+//按键改变亮度
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
 		texcg2 = 0;
 	}
 	if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
 		texcg2 = 1;
-	}
-	if (key == GLFW_KEY_3 && action == GLFW_PRESS) {
-		texcg1 = 0;
-	}
-	if (key == GLFW_KEY_4 && action == GLFW_PRESS) {
-		texcg1 = 1;
 	}
 	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
 		lightambient += glm::vec3(0.05f);
@@ -643,6 +743,8 @@ int main(int argc, char* argv[])
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
 	initializedGL();
+
+	GenerateRock(rockPositions);
 
 	while (!glfwWindowShouldClose(window)) {
 		//每帧时间
