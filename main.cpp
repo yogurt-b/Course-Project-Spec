@@ -35,6 +35,7 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 // timing
 float deltaTime = 0.0f;	// 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
+float v[3] = {-0.005f, 0.003f, -0.008f }; //巡逻飞船速度
 //改变纹理
 bool texcg2 = 0;
 //单击开启视角移动
@@ -46,8 +47,9 @@ float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 //移动变量
 float angle = 180.0f;
-
 glm::vec3 spacefront = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 theoffset[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f) };//巡逻飞船偏移量
+
 //改变光照强度
 glm::vec3 lightambient(0.6f);
 
@@ -266,6 +268,10 @@ Model objrock;
 Texture Texture1;
 //Texture Texture4;
 
+GLuint VAO4, VBO4, EBO4;
+Model objthecraft;
+Texture Texture5;
+
 
 void sendDataToOpenGL()
 {
@@ -469,6 +475,48 @@ void sendDataToOpenGL()
 		sizeof(Vertex), // stride
 		(void*)offsetof(Vertex, normal) // array buffer offset
 	);
+	//本地巡逻飞行器
+	objthecraft = loadOBJ("resources/object/craft_1.obj");
+	glGenVertexArrays(1, &VAO4);
+	glBindVertexArray(VAO4);
+	//Create Vertex Buffer Objects
+	glGenBuffers(1, &VBO4);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO4);
+	glBufferData(GL_ARRAY_BUFFER, objthecraft.vertices.size() * sizeof(Vertex), &objthecraft.vertices[0], GL_STATIC_DRAW);
+	//Create Element array Buffer Objects
+	glGenBuffers(1, &EBO4);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO4);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, objthecraft.indices.size() * sizeof(unsigned int), &objthecraft.indices[0], GL_STATIC_DRAW);
+	// 1st attribute buffer : position
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(
+		0, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		sizeof(Vertex), // stride
+		(void*)offsetof(Vertex, position) // array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(
+		1, // attribute
+		2, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		sizeof(Vertex), // stride
+		(void*)offsetof(Vertex, uv) // array buffer offset
+	);
+	Texture5.setupTexture("resources/texture/ringTexture.bmp");
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(
+		2, // attribute
+		3, // size
+		GL_FLOAT, // type
+		GL_FALSE, // normalized?
+		sizeof(Vertex), // stride
+		(void*)offsetof(Vertex, normal) // array buffer offset
+	);
 }
 
 Shader myshader;
@@ -597,8 +645,6 @@ void paintGL(void)  //always run
 		model = glm::translate(model, rockPositions[i]);
 		//不同角度
 		model = glm::rotate(model, glm::radians(rotangle[i]), rotaxis[i]);
-		//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-
 		//不同大小
 		model = glm::scale(model, glm::vec3(rocksizes[i]));
 		
@@ -606,7 +652,23 @@ void paintGL(void)  //always run
 
 		glDrawElements(GL_TRIANGLES, objrock.indices.size(), GL_UNSIGNED_INT, 0);
 	}
-	
+	//本地巡逻飞行器 z轴沿x轴方向平移
+	//Bind different textures
+	glBindVertexArray(VAO4);
+	Texture5.bind(0);
+	for (unsigned int i = 0; i < 3; i++)
+	{
+		if (theoffset[i][0] >= 3.0f || theoffset[i][0] <= -3.0f)//不能用等于判断，一般来说，您永远不应该测试浮点数的相等性
+			v[i] = -v[i];
+		theoffset[i][0] += v[i] * 0.5f;
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 3.0f + i * 1.8f) + theoffset[i]);//
+		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(40.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
+
+		myshader.setMat4("model", model);
+		glDrawElements(GL_TRIANGLES, objthecraft.indices.size(), GL_UNSIGNED_INT, 0);
+	}
 
 	//天空盒 
 	model = glm::mat4(1.0f);
@@ -642,7 +704,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 //光标移动改变视角
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	float cameraSpeed = static_cast<float>(2.5 * deltaTime);
 	if (firstMouse)
 	{
 		lastX = xpos;
