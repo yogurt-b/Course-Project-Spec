@@ -97,6 +97,18 @@ void GenerateRock(glm::vec3 rockPositions[])
 	
 }
 
+//碰撞检测
+bool CollisiontheC[3] = { 0,0,0 };//本地车辆碰撞
+glm::vec3 SC_minv = glm::vec3(0.0f, 0.0f, 0.0f);//驾驶飞船包围盒
+glm::vec3 SC_maxv = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 TC_minv[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f) };//巡逻飞船包围盒
+glm::vec3 TC_maxv[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f) };
+void CollisionDetect(int i , bool CollisiontheC[])
+{
+	if (SC_minv.x <= TC_maxv[i].x && SC_minv.y <= TC_maxv[i].y && SC_minv.z <= TC_maxv[i].z &&
+		TC_minv[i].x <= SC_maxv.x && TC_minv[i].y <= SC_maxv.y && TC_minv[i].z <= SC_maxv.z)
+		CollisiontheC[i] = 1;
+}
 
 //加载立方体纹理贴图
 unsigned int loadCubemap(vector<std::string> faces)
@@ -271,7 +283,7 @@ Texture Texture1;
 GLuint VAO4, VBO4, EBO4;
 Model objthecraft;
 Texture Texture5;
-
+Texture Texture6;
 
 void sendDataToOpenGL()
 {
@@ -507,6 +519,7 @@ void sendDataToOpenGL()
 		(void*)offsetof(Vertex, uv) // array buffer offset
 	);
 	Texture5.setupTexture("resources/texture/ringTexture.bmp");
+	Texture6.setupTexture("resources/texture/red.bmp");
 
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(
@@ -597,6 +610,10 @@ void paintGL(void)  //always run
 	glm::mat4 scmodel = SC_trans * SC_rot;
 	camera_world_pos = scmodel * glm::vec4(0.0f, 0.6f, -1.0f, 1.0f);
 	SC_world_pos = scmodel * glm::vec4(0.0f, 0.0f, 1.5f, 1.0f);
+	//aabb包围盒
+	SC_minv = scmodel * glm::vec4(0.5f, -0.3f, -0.8f, 1.0f);//左后下角
+	SC_maxv = scmodel * glm::vec4(-0.5f, 0.3f, 0.8f, 1.0f);//右前上角
+
 	view = glm::lookAt(camera_world_pos, SC_world_pos, cameraUp);//不乘缩放，不然移动尺度很小
 	
 	model = SC_trans* SC_rot* SC_scale;
@@ -655,7 +672,7 @@ void paintGL(void)  //always run
 	//本地巡逻飞行器 z轴沿x轴方向平移
 	//Bind different textures
 	glBindVertexArray(VAO4);
-	Texture5.bind(0);
+	
 	for (unsigned int i = 0; i < 3; i++)
 	{
 		if (theoffset[i][0] >= 3.0f || theoffset[i][0] <= -3.0f)//不能用等于判断，一般来说，您永远不应该测试浮点数的相等性
@@ -664,8 +681,18 @@ void paintGL(void)  //always run
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 3.0f + i * 1.8f) + theoffset[i]);//
 		model = glm::rotate(model, (float)glfwGetTime() * glm::radians(40.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 tcmodel = model;
 		model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
+		
+		//aabb包围盒
+		TC_minv[i] = tcmodel * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);//左后下角
+		TC_maxv[i] = tcmodel * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);//右前上角
 
+		CollisionDetect(i, CollisiontheC);
+		if(CollisiontheC[i] == 0)//判断有无碰撞
+			Texture5.bind(0);
+		else
+			Texture6.bind(0);//后面看看能不能改成交替闪烁函数
 		myshader.setMat4("model", model);
 		glDrawElements(GL_TRIANGLES, objthecraft.indices.size(), GL_UNSIGNED_INT, 0);
 	}
