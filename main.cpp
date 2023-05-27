@@ -23,7 +23,7 @@ Student Name:周灵萱
 const int SCR_WIDTH = 800;
 const int SCR_HEIGHT = 600;
 //Sc and camera
-glm::vec3 SC_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 SC_view = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 camera_world_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 
 glm::vec3 SC_local_front = glm::vec3(0.0f, 0.0f, 1.0f);
@@ -36,8 +36,7 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float deltaTime = 0.0f;	// 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
 float v[3] = {-0.005f, 0.003f, -0.008f }; //巡逻飞船速度
-//改变纹理
-bool texcg2 = 0;
+
 //单击开启视角移动
 bool openmove = 0;
 bool firstMouse = true;
@@ -93,23 +92,55 @@ void GenerateRock(glm::vec3 rockPositions[])
 		float axis_y = 0.1f * ((rand() % 11) / 10.0f); // Y 
 		float axis_z = 0.1f * ((rand() % 11) / 10.0f); // Z
 		rotaxis[i] = glm::vec3(axis_x, axis_y, axis_z);
-	}
-	
+	}	
 }
+
+glm::vec3 goldPositions[5];//位置
+//随机生成黄金位置
+void GenerateGold(glm::vec3 goldPositions[])
+{
+	srand(time(NULL)); // 设置随机数种子  
+	float radius = 2.0; // 圆环半径  
+	for (unsigned int i = 0; i < 5; i++)
+	{
+		float xzrange = 0.3f * (rand() % 11 / 10.0f); //半径水平随机偏移量
+		float angle = (float)i / (float)(6 - 1) * 2 * PI; // 计算极角  
+		float x = (radius + xzrange) * sin(angle); // X坐标  
+		float z = (radius + xzrange) * cos(angle); // Z坐标  
+		float y = 0.2f * ((rand() % 11) / 10.0f); //竖直随机偏移量
+		goldPositions[i] = glm::vec3(x, y, z);
+	}
+
+}
+
 
 //碰撞检测
 bool CollisiontheC[3] = { 0,0,0 };//本地车辆碰撞
-glm::vec3 SC_minv = glm::vec3(0.0f, 0.0f, 0.0f);//驾驶飞船包围盒
-glm::vec3 SC_maxv = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 TC_minv[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f) };//巡逻飞船包围盒
-glm::vec3 TC_maxv[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f) };
-void CollisionDetect(int i , bool CollisiontheC[])
+glm::vec3 SC_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 TC_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+void CollisionDetect1(int i , bool CollisiontheC[])//和巡逻飞船
 {
-	if (SC_minv.x <= TC_maxv[i].x && SC_minv.y <= TC_maxv[i].y && SC_minv.z <= TC_maxv[i].z &&
-		TC_minv[i].x <= SC_maxv.x && TC_minv[i].y <= SC_maxv.y && TC_minv[i].z <= SC_maxv.z)
+	if ((SC_pos.x - TC_pos.x)* (SC_pos.x - TC_pos.x) + (SC_pos.y - TC_pos.y) * (SC_pos.y - TC_pos.y) 
+		+ (SC_pos.z - TC_pos.z) * (SC_pos.z - TC_pos.z) <= 0.8f)
 		CollisiontheC[i] = 1;
 }
 
+bool CollectiontheGold[5] = { 0,0,0,0,0 };//收集黄金碰撞
+glm::vec3 GD_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+void CollisionDetect2(int i, bool CollisiontheC[])//和黄金
+{
+	if ((SC_pos.x - GD_pos.x) * (SC_pos.x - GD_pos.x) + (SC_pos.y - GD_pos.y) * (SC_pos.y - GD_pos.y)
+		+ (SC_pos.z - GD_pos.z) * (SC_pos.z - GD_pos.z) <= 0.1f)
+		CollectiontheGold[i] = 1;
+}
+//改变纹理
+bool collectAll = 0;
+//收集完毕检测
+void IsCollectAll(bool CollectiontheGold[])
+{
+	if (CollectiontheGold[0] && CollectiontheGold[1] && CollectiontheGold[2] && CollectiontheGold[3] && CollectiontheGold[4])
+		collectAll = 1;
+}
 //加载立方体纹理贴图
 unsigned int loadCubemap(vector<std::string> faces)
 {
@@ -609,12 +640,11 @@ void paintGL(void)  //always run
 	glm::mat4 SC_scale = glm::scale(model, glm::vec3(0.0005f, 0.0005f, 0.0005f));
 	glm::mat4 scmodel = SC_trans * SC_rot;
 	camera_world_pos = scmodel * glm::vec4(0.0f, 0.6f, -1.0f, 1.0f);
-	SC_world_pos = scmodel * glm::vec4(0.0f, 0.0f, 1.5f, 1.0f);
-	//aabb包围盒
-	SC_minv = scmodel * glm::vec4(0.5f, -0.3f, -0.8f, 1.0f);//左后下角
-	SC_maxv = scmodel * glm::vec4(-0.5f, 0.3f, 0.8f, 1.0f);//右前上角
+	SC_view = scmodel * glm::vec4(0.0f, 0.0f, 1.5f, 1.0f);
+	//中心位置
+	SC_pos = scmodel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	view = glm::lookAt(camera_world_pos, SC_world_pos, cameraUp);//不乘缩放，不然移动尺度很小
+	view = glm::lookAt(camera_world_pos, SC_view, cameraUp);//不乘缩放，不然移动尺度很小
 	
 	model = SC_trans* SC_rot* SC_scale;
 
@@ -627,9 +657,11 @@ void paintGL(void)  //always run
 	myshader.setMat4("projection", projection);
 	myshader.setMat4("model", model);
 	glBindVertexArray(VAO2);
-	if (texcg2 == 0)
+	//判断是否收集完毕
+	IsCollectAll(CollectiontheGold);
+	if (collectAll == 0)
 		Texture3.bind(0);
-	if (texcg2 == 1)
+	else
 		Texture4.bind(0);
 
 	glDrawElements(GL_TRIANGLES, objmycraft.indices.size(), GL_UNSIGNED_INT, 0);
@@ -652,7 +684,6 @@ void paintGL(void)  //always run
 	glBindVertexArray(VAO3);
 	Texture1.bind(0);
 	//200不同位置
-	
 	for (unsigned int i = 0; i < 200; i++)
 	{
 		model = glm::mat4(1.0f);
@@ -665,6 +696,27 @@ void paintGL(void)  //always run
 		//不同大小
 		model = glm::scale(model, glm::vec3(rocksizes[i]));
 		
+		myshader.setMat4("model", model);
+
+		glDrawElements(GL_TRIANGLES, objrock.indices.size(), GL_UNSIGNED_INT, 0);
+	}
+	//设置五个黄金
+	for (unsigned int i = 0; i < 5; i++)
+	{
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, goldPositions[i]);
+		//角度
+		model = glm::rotate(model, glm::radians(65.0f), glm::vec3(1.0f, 3.0f, 2.0f));
+		//中心位置
+		GD_pos = model * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		//大小
+		model = glm::scale(model, glm::vec3(0.02f, 0.02f, 0.02f));
+		CollisionDetect2(i, CollectiontheGold);
+		if (CollectiontheGold[i] == 0)//判断有无碰撞
+			Texture4.bind(0);
+		else
+			Texture1.bind(0);
+
 		myshader.setMat4("model", model);
 
 		glDrawElements(GL_TRIANGLES, objrock.indices.size(), GL_UNSIGNED_INT, 0);
@@ -684,15 +736,20 @@ void paintGL(void)  //always run
 		glm::mat4 tcmodel = model;
 		model = glm::scale(model, glm::vec3(0.05f, 0.05f, 0.05f));
 		
-		//aabb包围盒
-		TC_minv[i] = tcmodel * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f);//左后下角
-		TC_maxv[i] = tcmodel * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f);//右前上角
+		//中心位置
+		TC_pos = tcmodel * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
-		CollisionDetect(i, CollisiontheC);
+		CollisionDetect1(i, CollisiontheC);
 		if(CollisiontheC[i] == 0)//判断有无碰撞
 			Texture5.bind(0);
 		else
-			Texture6.bind(0);//后面看看能不能改成交替闪烁函数
+		{
+			if(sin(10*glfwGetTime()) >= 0.0f)//交替闪烁
+				Texture6.bind(0);
+			else
+				Texture5.bind(0);
+		}
+
 		myshader.setMat4("model", model);
 		glDrawElements(GL_TRIANGLES, objthecraft.indices.size(), GL_UNSIGNED_INT, 0);
 	}
@@ -750,12 +807,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 //按键改变亮度
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
-		texcg2 = 0;
-	}
-	if (key == GLFW_KEY_2 && action == GLFW_PRESS) {
-		texcg2 = 1;
-	}
 	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
 		lightambient += glm::vec3(0.05f);
 	}
@@ -828,11 +879,12 @@ int main(int argc, char* argv[])
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	initializedGL();
 
 	GenerateRock(rockPositions);
+	GenerateGold(goldPositions);
 
 	while (!glfwWindowShouldClose(window)) {
 		//每帧时间
