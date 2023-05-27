@@ -52,7 +52,7 @@ glm::vec3 theoffset[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0
 //改变光照强度
 glm::vec3 lightambient(0.6f);
 
-glm::vec3 spotPos = glm::vec3(0.0f, 4.0f, 0.0f);
+glm::vec3 spotPos = glm::vec3(0.0f, 0.0f, 9.8f);
 
 // struct for storing the obj file
 struct Vertex {
@@ -601,24 +601,25 @@ void paintGL(void)  //always run
 	myshader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
 	myshader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
 	// spotLight
-	glm::vec3 lightColor;
-	lightColor.x = sin(glfwGetTime() * 2.0f);
-	lightColor.y = sin(glfwGetTime() * 0.7f);
-	lightColor.z = sin(glfwGetTime() * 1.3f);
+	glm::vec3 lightColor = glm::vec3 (1.0f, 0.5f, 0.31f);
+//	lightColor.x = sin(glfwGetTime() * 2.0f);
+//	lightColor.y = sin(glfwGetTime() * 0.7f);
+//	lightColor.z = sin(glfwGetTime() * 1.3f);
 
 	glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f); // 降低影响
-	glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f); // 很低的影响
-
+	glm::vec3 ambientColor = diffuseColor * glm::vec3(0.5f); // 很低的影响
+	spotPos = SC_pos + glm::vec3(0.0f, 0.0f, -0.2f);
 	myshader.setVec3("spotLight.position", spotPos);
-	myshader.setVec3("spotLight.direction", spacefront -spotPos);
+	myshader.setVec3("spotLight.direction", SC_world_Front_Dir);
+//	myshader.setVec3("spotLight.direction", glm::vec3 (0.0f,0.0f,-1.0f));
 	myshader.setVec3("spotLight.ambient", ambientColor);
 	myshader.setVec3("spotLight.diffuse", diffuseColor);
 	myshader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 	myshader.setFloat("spotLight.constant", 1.0f);
 	myshader.setFloat("spotLight.linear", 0.09f);
 	myshader.setFloat("spotLight.quadratic", 0.032f);
-	myshader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-	myshader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
+	myshader.setFloat("spotLight.cutOff", glm::cos(glm::radians(4.5f)));
+	myshader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(10.0f)));
 	// material properties
 	myshader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
 	myshader.setFloat("material.shininess", 32.0f);
