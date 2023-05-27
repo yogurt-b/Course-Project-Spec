@@ -50,7 +50,8 @@ glm::vec3 spacefront = glm::vec3(0.0f, 0.0f, 0.0f);
 glm::vec3 theoffset[3] = { glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f),glm::vec3(0.0f, 0.0f, 0.0f) };//巡逻飞船偏移量
 
 //改变光照强度
-glm::vec3 lightambient(0.6f);
+glm::vec3 lightambient(0.4f);
+
 
 glm::vec3 spotPos = glm::vec3(0.0f, 0.0f, 9.8f);
 
@@ -600,6 +601,46 @@ void paintGL(void)  //always run
 	myshader.setVec3("dirLight.ambient", lightambient);
 	myshader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
 	myshader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+	// point light 1
+	myshader.setVec3("pointLights[0].position", goldPositions[0]+glm::vec3(0.0f, 0.1f, 0.0f));
+	myshader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+	myshader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+	myshader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+	myshader.setFloat("pointLights[0].constant", 1.0f);
+	myshader.setFloat("pointLights[0].linear", 0.09f);
+	myshader.setFloat("pointLights[0].quadratic", 0.032f);
+	// point light 2
+	myshader.setVec3("pointLights[1].position", goldPositions[1] + glm::vec3(0.0f, 0.1f, 0.0f));
+	myshader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+	myshader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+	myshader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+	myshader.setFloat("pointLights[1].constant", 1.0f);
+	myshader.setFloat("pointLights[1].linear", 0.09f);
+	myshader.setFloat("pointLights[1].quadratic", 0.032f);
+	// point light 3
+	myshader.setVec3("pointLights[2].position", goldPositions[2] + glm::vec3(0.0f, 0.1f, 0.0f));
+	myshader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+	myshader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+	myshader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+	myshader.setFloat("pointLights[2].constant", 1.0f);
+	myshader.setFloat("pointLights[2].linear", 0.09f);
+	myshader.setFloat("pointLights[2].quadratic", 0.032f);
+	// point light 4
+	myshader.setVec3("pointLights[3].position", goldPositions[3] + glm::vec3(0.0f, 0.1f, 0.0f));
+	myshader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+	myshader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+	myshader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+	myshader.setFloat("pointLights[3].constant", 1.0f);
+	myshader.setFloat("pointLights[3].linear", 0.09f);
+	myshader.setFloat("pointLights[3].quadratic", 0.032f);
+	// point light 5
+	myshader.setVec3("pointLights[4].position", goldPositions[4] + glm::vec3(0.0f, 0.1f, 0.0f));
+	myshader.setVec3("pointLights[4].ambient", 0.05f, 0.05f, 0.05f);
+	myshader.setVec3("pointLights[4].diffuse", 0.8f, 0.8f, 0.8f);
+	myshader.setVec3("pointLights[4].specular", 1.0f, 1.0f, 1.0f);
+	myshader.setFloat("pointLights[4].constant", 1.0f);
+	myshader.setFloat("pointLights[4].linear", 0.09f);
+	myshader.setFloat("pointLights[4].quadratic", 0.032f);
 	// spotLight
 	glm::vec3 lightColor = glm::vec3 (1.0f, 0.5f, 0.31f);
 //	lightColor.x = sin(glfwGetTime() * 2.0f);
